@@ -1,7 +1,7 @@
 import gif from '../img/cut.gif'
 import { useState } from 'react'
-import { useQuery } from "@tanstack/react-query"
-import { getComments } from "../Api/Api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { deleteComments, getComments, updatepost } from "../Api/Api"
 import {
     getCoreRowModel,
     useReactTable,
@@ -13,13 +13,39 @@ import {
 
 function Table() {
 
+    const queriyClient = useQueryClient()
     const { data, isError, error, isPending } = useQuery({
-        queryKey: ["comments"],
+        queryKey: ["posts"],
         queryFn: getComments,
         staleTime: 10000,
     })
 
-    console.dir(data);
+
+
+    const DeleteComments = useMutation({
+        mutationFn: (id) => deleteComments(id),
+        onSuccess: (data, id) => (
+            queriyClient.setQueryData(["posts"], (Data) => {
+                console.log('Delete data successfully', Data);
+                return Data.filter((item) => item.id !== Number(id));
+
+            })
+        )
+    });
+
+
+    const UpdatePost = useMutation({
+        mutationFn: (id) => updatepost(id),
+        onSuccess: (data, id) => (
+            queriyClient.setQueryData(["posts"], (oldData) => {
+                console.log(typeof Number(id));
+
+                return oldData.map((item) => item.id === Number(id) ? { ...item, body: data.data.body, title: data.data.title } : item)
+
+            })
+        )
+    });
+
 
     const columns = [
         {
@@ -27,17 +53,39 @@ function Table() {
             accessorKey: 'id'
         },
         {
-            header: 'name',
-            accessorKey: 'name'
-        },
-        {
-            header: 'email',
-            accessorKey: 'email'
+            header: 'title',
+            accessorKey: 'title'
         },
         {
             header: 'body',
             accessorKey: 'body'
+        },
+        {
+            header: 'Operation',
+            cell: ({ cell }) => {
+                const cellId = cell.id.split('_')[0]; // Extracts the numeric part (e.g., '2')
+                // Extracts the numeric part (e.g., '2')
+                return (
+                    <div className='flex justify-around'>
+                        <button
+                            type="button"
+                            className="focus:outline-none text-white bg-yellow-400 hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:focus:ring-yellow-900"
+                            onClick={() => UpdatePost.mutate(cellId)} // Pass the extracted cell ID
+                        >
+                            Update
+                        </button>
+                        <button
+                            type="button"
+                            className="focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900"
+                            onClick={() => DeleteComments.mutate(cellId)} // Pass the extracted cell ID
+                        >
+                            Delete
+                        </button>
+                    </div>
+                );
+            }
         }
+
     ]
 
     const [sorting, setSorting] = useState()
@@ -71,8 +119,6 @@ function Table() {
                 <table className="table text-[1rem]">
                     {/* head */}
                     <thead className="bg-base-100 text-white">
-
-
                         {
                             table.getHeaderGroups().map((headerGroup) => (
                                 <tr key={headerGroup.id}>
@@ -93,11 +139,6 @@ function Table() {
                         }
                     </thead>
                     <tbody>
-                        {/* row 1 */}
-                        {/* <tr className="bg-base-200">
-                            <th>1</th>
-                        </tr> */}
-
                         {
                             table.getRowModel().rows.map((row) => (
                                 <tr className="bg-base-200" key={row.id}>
