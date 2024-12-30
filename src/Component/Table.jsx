@@ -1,5 +1,5 @@
 import gif from '../img/cut.gif'
-import { useEffect, useState } from 'react'
+import {  useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { deleteComments, getComments, updatepost } from "../Api/Api"
 import {
