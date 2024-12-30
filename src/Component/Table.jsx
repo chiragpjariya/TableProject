@@ -58,8 +58,8 @@ function Table() {
         onSortingChange: setSorting,
     })
 
-    if (isPending) return <div className='h-screen w-full'>
-        <img src={gif} alt="animation" />
+    if (isPending) return <div className='h-screen w-full overflow-hidden'>
+        <img src={gif} alt="animation" height={'100%'} width='100%' />
     </div>
 
 
