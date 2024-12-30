@@ -1,6 +1,6 @@
 import gif from '../img/cut.gif'
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { deleteComments, getComments, updatepost } from "../Api/Api"
 import {
     getCoreRowModel,
@@ -11,6 +11,8 @@ import {
     getSortedRowModel,
 } from "@tanstack/react-table";
 
+
+
 function Table() {
 
     const queriyClient = useQueryClient()
@@ -18,32 +20,34 @@ function Table() {
         queryKey: ["posts"],
         queryFn: getComments,
         staleTime: 10000,
+        placeholderData: keepPreviousData
     })
 
 
 
     const DeleteComments = useMutation({
         mutationFn: (id) => deleteComments(id),
-        onSuccess: (data, id) => (
-            queriyClient.setQueryData(["posts"], (Data) => {
-                console.log('Delete data successfully', Data);
-                return Data.filter((item) => item.id !== Number(id));
+        onSuccess: (response, id) => {
+            if (response.status > 199) {
 
-            })
-        )
+                queriyClient.setQueryData(['posts'], (oldData) => {
+                    let newData = oldData.filter((item) => item.id !== Number(id))
+                    console.log('Delete successfully', newData);
+                    return newData
+
+                })
+            } else {
+                console.log('something wrong');
+
+            }
+
+        }
     });
 
 
     const UpdatePost = useMutation({
         mutationFn: (id) => updatepost(id),
-        onSuccess: (data, id) => (
-            queriyClient.setQueryData(["posts"], (oldData) => {
-                console.log(typeof Number(id));
 
-                return oldData.map((item) => item.id === Number(id) ? { ...item, body: data.data.body, title: data.data.title } : item)
-
-            })
-        )
     });
 
 
@@ -90,6 +94,11 @@ function Table() {
 
     const [sorting, setSorting] = useState()
     const [filtering, setFiltering] = useState()
+    const [pageSize, setPageSize] = useState()
+
+
+
+
 
     const table = useReactTable({
         data,
@@ -99,12 +108,17 @@ function Table() {
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         state: {
-            sorting,
-            filtering,
+            sorting: sorting,
+            globalFilter: filtering,
         },
         onGlobalFilterChange: setFiltering,
         onSortingChange: setSorting,
     })
+
+
+
+
+
 
     if (isPending) return <div className='h-screen w-full overflow-hidden'>
         <img src={gif} alt="animation" height={'100%'} width='100%' />
@@ -115,7 +129,57 @@ function Table() {
 
     return (
         <>
+            <div className='flex justify-around    items-center mt-12'>
+                <div className="  w-10  ">
+                    <select
+
+                        onChange={(e) => table.setPageSize(e.target.value)}
+                        className="text-white bg-gray-700 rounded-lg py-2 px-4 w-[150px] h-10 flex items-center justify-center"
+                    >
+                        {[5, 10, 20, 50].map(size => (
+                            <option key={size} value={size} >{size} pageSize</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="max-w-md mx-auto  ">
+                    <label
+                        htmlFor="default-search"
+                        className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white"
+                    >
+                        Search
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                            <svg
+                                className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                                aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 20 20"
+                            >
+                                <path
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                                />
+                            </svg>
+                        </div>
+                        <input
+                            type="search"
+                            id="default-search"
+                            className="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            placeholder="Search Mockups, Logos..."
+                            required=""
+                            onChange={(e) => setFiltering(e.target.value)}
+                            value={filtering}
+                        />
+                    </div>
+                </div>
+            </div>
             <div className="overflow-x-auto text-white text-3xl">
+
                 <table className="table text-[1rem]">
                     {/* head */}
                     <thead className="bg-base-100 text-white">
@@ -180,7 +244,9 @@ function Table() {
                         Last Page
                     </button>
                 </div>
+
             </div>
+
         </>
     )
 }
