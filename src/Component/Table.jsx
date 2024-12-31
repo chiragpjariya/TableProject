@@ -1,5 +1,5 @@
 import gif from '../img/cut.gif'
-import {  useState } from 'react'
+import { useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { deleteComments, getComments, updatepost } from "../Api/Api"
 import {
@@ -19,7 +19,6 @@ function Table() {
     const { data, isError, error, isPending } = useQuery({
         queryKey: ["posts"],
         queryFn: getComments,
-        staleTime: 10000,
         placeholderData: keepPreviousData
     })
 
@@ -31,11 +30,11 @@ function Table() {
             if (response.status > 199) {
 
                 queriyClient.setQueryData(['posts'], (oldData) => {
-                    let newData = oldData.filter((item) => item.id !== Number(id))
-                    console.log('Delete successfully', newData);
-                    return newData
+                    console.log('Delete successfully', oldData);
+                    return oldData.filter((item) => item.id !== Number(id) + 1)
 
                 })
+
             } else {
                 console.log('something wrong');
 
@@ -47,6 +46,22 @@ function Table() {
 
     const UpdatePost = useMutation({
         mutationFn: (id) => updatepost(id),
+        onSuccess: (response, id) => {
+            if (response.status > 199) {
+                let { body, title } = response.data
+
+                queriyClient.setQueryData(['posts'], (oldData) => {
+                    console.log('Delete successfully', oldData);
+                    return oldData.map((item) => item.id == Number(id) + 1 ? { ...item, body: body, title: title } : item)
+
+                })
+
+            } else {
+                console.log('something wrong');
+
+            }
+
+        }
 
     });
 
@@ -67,8 +82,8 @@ function Table() {
         {
             header: 'Operation',
             cell: ({ cell }) => {
-                const cellId = cell.id.split('_')[0]; // Extracts the numeric part (e.g., '2')
-                // Extracts the numeric part (e.g., '2')
+                const cellId = cell.id.split('_')[0];
+
                 return (
                     <div className='flex justify-around'>
                         <button
@@ -176,6 +191,7 @@ function Table() {
                             value={filtering}
                         />
                     </div>
+
                 </div>
             </div>
             <div className="overflow-x-auto text-white text-3xl">

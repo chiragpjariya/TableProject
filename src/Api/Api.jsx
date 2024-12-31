@@ -10,7 +10,7 @@ export const getComments = async () => {
 }
 
 export const deleteComments = async (id) => {
-    const response = await api.delete(`/${id}`)
+    const response = await api.delete(`${id}`)
     return response;
 }
 
