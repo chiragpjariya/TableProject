@@ -109,11 +109,7 @@ function Table() {
 
     const [sorting, setSorting] = useState()
     const [filtering, setFiltering] = useState()
-    const [pageSize, setPageSize] = useState()
-
-
-
-
+   
 
     const table = useReactTable({
         data,
